@@ -38,6 +38,7 @@ from sushy_tools.emulator.resources.systems import fakedriver
 from sushy_tools.emulator.resources.systems import ironicdriver
 from sushy_tools.emulator.resources.systems import libvirtdriver
 from sushy_tools.emulator.resources.systems import novadriver
+from sushy_tools.emulator.resources.systems import proxmoxdriver
 from sushy_tools.emulator.resources import vmedia as vmddriver
 from sushy_tools.emulator.resources import volumes as voldriver
 from sushy_tools import error
@@ -113,6 +114,7 @@ class Application(flask.Flask):
         fake = self.config.get('SUSHY_EMULATOR_FAKE_DRIVER')
         os_cloud = self.config.get('SUSHY_EMULATOR_OS_CLOUD')
         ironic_cloud = self.config.get('SUSHY_EMULATOR_IRONIC_CLOUD')
+        proxmox_host = self.config.get('SUSHY_EMULATOR_PROXMOX_HOST')
 
         if fake:
             result = fakedriver.FakeDriver.initialize(
@@ -133,6 +135,16 @@ class Application(flask.Flask):
 
             result = ironicdriver.IronicDriver.initialize(
                 self.config, self.logger, ironic_cloud)()
+
+        elif proxmox_host:
+            if not proxmoxdriver.is_loaded:
+                self.logger.error('Proxmox driver not loaded. '
+                                  'Please install proxmoxer.')
+                sys.exit(1)
+
+            result = proxmoxdriver.ProxmoxDriver.initialize(
+                self.config, self.logger
+            )()
 
         else:
             if not libvirtdriver.is_loaded:
@@ -1027,6 +1039,11 @@ def parse_args():
                                help='Ironic cloud name. Can also be set via '
                                     'via config variable '
                                     'SUSHY_EMULATOR_IRONIC_CLOUD.')
+    backend_group.add_argument('--proxmox-host',
+                               type=str,
+                               help='Proxmox host. Can also be set via '
+                                    'config variable '
+                                    'SUSHY_EMULATOR_PROXMOX_HOST.')
 
     return parser.parse_args()
 
@@ -1047,6 +1064,9 @@ def main():
 
     if args.ironic_cloud:
         app.config['SUSHY_EMULATOR_IRONIC_CLOUD'] = args.ironic_cloud
+
+    if args.proxmox_host:
+        app.config['SUSHY_EMULATOR_PROXMOX_HOST'] = args.proxmox_host
 
     if args.fake:
         app.config['SUSHY_EMULATOR_FAKE_DRIVER'] = True
