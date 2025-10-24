@@ -409,7 +409,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
         if boot_image:
             file_name = boot_image.split("/")[-1]
             proxmox_file = Files(self._proxmox, node_name, storage_name)
-            taskid = proxmox_file.upload_local_file_to_storage(filename=boot_image, do_checksum_check=False, blocking_status=True)
+            taskid = proxmox_file.upload_local_file_to_storage(filename=boot_image, blocking_status=True)
             # boot_image is expected to be in format <storage>:<path>
             # e.g. 'local:iso/ubuntu.iso'
             vm.config.set(ide2=f"{storage_name}:iso/{file_name},media=cdrom")
