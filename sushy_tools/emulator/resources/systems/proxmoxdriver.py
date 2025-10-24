@@ -204,11 +204,15 @@ class ProxmoxDriver(AbstractSystemsDriver):
                         vm.status.shutdown.post()
                     else:
                         self._logger.debug(f"Forcing power off VM {identity}")
-                        vm.status.stop.post()
+                        vm.status.stop.post(force=1)
             elif state in ("ForceRestart", "GracefulRestart"):
                 if current_status == "running":
-                    self._logger.debug(f"Restarting VM {identity}")
-                    vm.status.reboot.post()
+                    if state == "GracefulRestart":
+                        self._logger.debug(f"Restarting VM {identity}")
+                        vm.status.restart.post()
+                    else:
+                        self._logger.debug(f"Forcing restart VM {identity}")
+                        vm.status.stop.post(force=1)
             elif state == "Nmi":
                 raise error.NotSupportedError("NMI is not supported")
             else:
@@ -409,7 +413,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
         if boot_image:
             file_name = boot_image.split("/")[-1]
             proxmox_file = Files(self._proxmox, node_name, storage_name)
-            taskid = proxmox_file.upload_local_file_to_storage(filename=boot_image, blocking_status=True)
+            proxmox_file.upload_local_file_to_storage(filename=boot_image, blocking_status=True)
             # boot_image is expected to be in format <storage>:<path>
             # e.g. 'local:iso/ubuntu.iso'
             vm.config.set(ide2=f"{storage_name}:iso/{file_name},media=cdrom")
