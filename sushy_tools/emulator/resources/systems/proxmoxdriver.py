@@ -79,6 +79,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
             token_name = config.get("SUSHY_EMULATOR_PROXMOX_TOKEN_NAME")
             token_value = config.get("SUSHY_EMULATOR_PROXMOX_TOKEN_VALUE")
             verify_ssl = config.get("SUSHY_EMULATOR_PROXMOX_VERIFY_SSL", True)
+            timeout = config.get("SUSHY_EMULATOR_PROXMOX_VERIFY_SSL", 300)
 
             if token_name and token_value:
                 # Use API token
@@ -88,11 +89,12 @@ class ProxmoxDriver(AbstractSystemsDriver):
                     token_name=token_name,
                     token_value=token_value,
                     verify_ssl=verify_ssl,
+                    timeout=timeout
                 )
             else:
                 # Use password
                 cls._proxmox = ProxmoxAPI(
-                    host, user=user, password=password, verify_ssl=verify_ssl
+                    host, user=user, password=password, verify_ssl=verify_ssl, timeout=timeout
                 )
 
         cls._http_boot_uri = None
@@ -407,7 +409,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
         if boot_image:
             file_name = boot_image.split("/")[-1]
             proxmox_file = Files(self._proxmox, node_name, storage_name)
-            proxmox_file.upload_local_file_to_storage(filename=boot_image)
+            taskid = proxmox_file.upload_local_file_to_storage(filename=boot_image, do_checksum_check=False, blocking_status=True)
             # boot_image is expected to be in format <storage>:<path>
             # e.g. 'local:iso/ubuntu.iso'
             vm.config.set(ide2=f"{storage_name}:iso/{file_name},media=cdrom")
