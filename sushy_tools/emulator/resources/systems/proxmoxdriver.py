@@ -204,15 +204,15 @@ class ProxmoxDriver(AbstractSystemsDriver):
                         vm.status.shutdown.post()
                     else:
                         self._logger.debug(f"Forcing power off VM {identity}")
-                        vm.status.stop.post(force=1)
+                        vm.status.stop.post(forceStop=1)
             elif state in ("ForceRestart", "GracefulRestart"):
                 if current_status == "running":
                     if state == "GracefulRestart":
                         self._logger.debug(f"Restarting VM {identity}")
-                        vm.status.restart.post()
+                        vm.status.reboot.post()
                     else:
                         self._logger.debug(f"Forcing restart VM {identity}")
-                        vm.status.stop.post(force=1)
+                        vm.status.reset.post()
             elif state == "Nmi":
                 raise error.NotSupportedError("NMI is not supported")
             else:
