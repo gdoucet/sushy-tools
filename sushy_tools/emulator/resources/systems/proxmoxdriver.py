@@ -204,7 +204,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
                         vm.status.shutdown.post()
                     else:
                         self._logger.debug(f"Forcing power off VM {identity}")
-                        vm.status.shutdown.post(forceStop=1)
+                        vm.status.stop.post(**{"overrule-shutdown": 1})
             elif state in ("ForceRestart", "GracefulRestart"):
                 if current_status == "running":
                     if state == "GracefulRestart":
