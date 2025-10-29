@@ -79,7 +79,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
             token_name = config.get("SUSHY_EMULATOR_PROXMOX_TOKEN_NAME")
             token_value = config.get("SUSHY_EMULATOR_PROXMOX_TOKEN_VALUE")
             verify_ssl = config.get("SUSHY_EMULATOR_PROXMOX_VERIFY_SSL", True)
-            timeout = config.get("SUSHY_EMULATOR_PROXMOX_VERIFY_SSL", 300)
+            timeout = config.get("SUSHY_EMULATOR_PROXMOX_TIMEOUT", 300)
 
             if token_name and token_value:
                 # Use API token
