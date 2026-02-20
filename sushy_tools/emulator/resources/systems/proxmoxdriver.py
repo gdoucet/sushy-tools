@@ -484,9 +484,13 @@ class ProxmoxDriver(AbstractSystemsDriver):
         storage_col = {}
         for key, value in config.items():
             if key.startswith(("scsi", "ide", "sata", "virtio")):
+                if key == "scsihw":
+                    continue
                 # e.g. scsi0: local-lvm:vm-100-disk-0,size=32G
                 parts = value.split(",")
                 disk_info = parts[0]
+                if ":" not in disk_info:
+                    continue
                 storage, path = disk_info.split(":")
                 size_bytes = 0
                 for part in parts:
@@ -511,7 +515,7 @@ class ProxmoxDriver(AbstractSystemsDriver):
 
     def find_or_create_storage_volume(self, data):
         """Find/create volume based on existence in the virtualization backend"""
-        raise error.NotSupportedError("Not implemented")
+        return data['Id']
 
     def get_processors(self, identity):
         """Get processor information for the system"""

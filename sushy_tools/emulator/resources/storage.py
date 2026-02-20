@@ -83,9 +83,9 @@ class ProxmoxDriver(base.ProxmoxDriverBase):
 
 
     def get_storage_col(self, identity):
-        config = self._get_vm_config(identity)
-        disks = [{'name': key, 'value': value.split(",")} for key, value in config.items() if key.startswith("scsi") and key != "scsihw"]
-        drives = sorted([disk['name'] for disk in disks])
-        controller = config.get('scsihw', 'Unknown')
-        storage_col = [{'Id': controller, 'Name': controller, 'Drives': drives}]
+        storages = self._get_storage_collection(identity)
+        storage_col = []
+        for storage in storages:
+            drives = [device['Name'] for device in storages[storage]['DeviceList']]
+            storage_col.append({'Id': storages[storage]['Id'], 'Name': storages[storage]['Name'], 'Drives': sorted(drives)})
         return storage_col

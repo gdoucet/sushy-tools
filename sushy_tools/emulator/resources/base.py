@@ -12,6 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from sushy_tools import error
 
 try:
     from proxmoxer import ProxmoxAPI
@@ -81,3 +82,38 @@ class ProxmoxDriverBase(DriverBase):
         msg = f'Error finding VM by name/vmid "{identity}"'
         self._logger.debug(msg)
         raise error.NotFound(msg)
+
+    def _get_storage_collection(self, identity):
+        """Get a dict of Simple Storage Controllers and their devices"""
+        config = self._get_vm_config(identity)
+        storage_col = {}
+        for key, value in config.items():
+            if key.startswith(("scsi", "ide", "sata", "virtio")):
+                if key == "scsihw":
+                    continue
+                # e.g. scsi0: local-lvm:vm-100-disk-0,size=32G
+                parts = value.split(",")
+                disk_info = parts[0]
+                if ":" not in disk_info:
+                    continue
+                storage, path = disk_info.split(":")
+                size_bytes = 0
+                for part in parts:
+                    if "size=" in part:
+                        size_str = part.split("=")[1]
+                        if size_str.upper().endswith("G"):
+                            size_bytes = int(float(size_str[:-1]) * 1024 * 1024 * 1024)
+                        elif size_str.upper().endswith("M"):
+                            size_bytes = int(float(size_str[:-1]) * 1024 * 1024)
+
+                ctl_type = "".join(filter(str.isalpha, key))
+                if ctl_type not in storage_col:
+                    storage_col[ctl_type] = {
+                        "Id": ctl_type,
+                        "Name": ctl_type,
+                        "DeviceList": [],
+                    }
+                storage_col[ctl_type]["DeviceList"].append(
+                    {"Name": path, "CapacityBytes": size_bytes}
+                )
+        return storage_col

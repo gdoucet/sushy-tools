@@ -92,20 +92,12 @@ class ProxmoxDriver(base.ProxmoxDriverBase):
         return '<proxmox-volumes>'
 
     def get_volumes_col(self, identity, storage_id):
-        config = self._get_vm_config(identity)
+        storage_col = self._get_storage_collection(identity)
+        devices = []
         volumes = []
-        for key, value in config.items():
-            if key == 'scsihw':
-                continue
-            if key.startswith("scsi"):
-                values = value.split(",")
-                drive_name = values[0]
-                values = values[1:]
-                properties = {value.split("=")[0]: value.split("=")[1] for value in values}
-                capacity = properties.get('size', '0')
-                if 'G' in capacity:
-                    capacity = int(capacity.replace('G', '')) * 1024 * 1024 * 1024
-
-                volumes.append({'Id': key, 'Name': drive_name, 'CapacityBytes': capacity, 'VolumeType': 'RawDevice'})
-
+        for storage in storage_col:
+            if storage == storage_id:
+                devices = storage_col[storage]['DeviceList']
+        for device in devices:
+            volumes.append({'Id': device['Name'], 'Name': device['Name'], 'CapacityBytes': device['CapacityBytes'], 'VolumeType': 'RawDevice'})
         return volumes
