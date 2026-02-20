@@ -188,16 +188,25 @@ class Application(flask.Flask):
     @property
     @memoize.memoize()
     def storage(self):
+        proxmox = self.config.get('SUSHY_EMULATOR_PROXMOX_HOST')
+        if proxmox:
+            return stgdriver.ProxmoxDriver(self.config, self.logger)
         return stgdriver.StaticDriver(self.config, self.logger)
 
     @property
     @memoize.memoize()
     def drives(self):
+        proxmox = self.config.get('SUSHY_EMULATOR_PROXMOX_HOST')
+        if proxmox:
+            return drvdriver.ProxmoxDriver(self.config, self.logger)
         return drvdriver.StaticDriver(self.config, self.logger)
 
     @property
     @memoize.memoize()
     def volumes(self):
+        proxmox = self.config.get('SUSHY_EMULATOR_PROXMOX_HOST')
+        if proxmox:
+            return voldriver.ProxmoxDriver(self.config, self.logger)
         return voldriver.StaticDriver(self.config, self.logger)
 
 

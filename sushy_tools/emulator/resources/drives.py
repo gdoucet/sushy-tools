@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from unicodedata import name
 import uuid
 
 from sushy_tools.emulator.resources import base
@@ -57,3 +58,37 @@ class StaticDriver(base.DriverBase):
         """
         return [k + (d['Id'],) for k in self._drives
                 for d in self._drives[k]]
+
+
+class ProxmoxDriver(base.ProxmoxDriverBase):
+    """Redfish storage drives backed by Proxmox"""
+
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+
+    @property
+    def driver(self):
+        """Return human-friendly driver information
+
+        :returns: driver information as `str`
+        """
+        return '<proxmox-drives>'
+
+    def get_drives(self, identity, storage_id):
+        config = self._get_vm_config(identity)
+        drives = []
+        for key, value in config.items():
+            if key == 'scsihw':
+                continue
+            if key.startswith("scsi"):
+                values = value.split(",")
+                drive_name = values[0]
+                values = values[1:]
+                properties = {value.split("=")[0]: value.split("=")[1] for value in values}
+                capacity = properties.get('size', '0')
+                if 'G' in capacity:
+                    capacity = int(capacity.replace('G', '')) * 1024 * 1024 * 1024
+
+                drives.append({'Id': key, 'Name': drive_name, 'CapacityBytes': capacity, 'Protocol': 'OEM'})
+
+        return drives

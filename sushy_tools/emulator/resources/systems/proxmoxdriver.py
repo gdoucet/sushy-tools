@@ -14,6 +14,7 @@
 #    under the License.
 
 import math
+from pyexpat import model
 
 from sushy_tools.emulator import memoize
 from sushy_tools.emulator.resources.systems.base import AbstractSystemsDriver
@@ -511,3 +512,20 @@ class ProxmoxDriver(AbstractSystemsDriver):
     def find_or_create_storage_volume(self, data):
         """Find/create volume based on existence in the virtualization backend"""
         raise error.NotSupportedError("Not implemented")
+
+    def get_processors(self, identity):
+        """Get processor information for the system"""
+        config = self._get_vm_config(identity)
+        cores_count = config.get("cores", 1)
+        sockets_count = config.get("sockets", 1)
+        processors = [{'id': 'CPU{0}'.format(x),
+                'socket': 'CPU {0}'.format(x)}
+                for x in range(sockets_count)]
+        model = config.get("cpu", "Unknown")
+        vendor = 'KVM'
+        for processor in processors:
+            processor['model'] = model
+            processor['vendor'] = vendor
+            processor['cores'] = cores_count
+            processor['threads'] = '1'
+        return processors

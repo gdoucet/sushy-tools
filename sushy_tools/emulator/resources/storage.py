@@ -18,13 +18,21 @@ import uuid
 from sushy_tools.emulator.resources import base
 from sushy_tools import error
 
+try:
+    from proxmoxer import ProxmoxAPI
+    from proxmoxer.tools.files import Files
+    from proxmoxer.core import ResourceException
+
+except ImportError:
+    ProxmoxAPI = None
+    Files = None
+    ResourceException = None
 
 class StaticDriver(base.DriverBase):
     """Redfish storage backed by configuration file"""
 
     def __init__(self, config, logger):
         super().__init__(config, logger)
-        self._storage = self._config.get('SUSHY_EMULATOR_STORAGE', {})
 
     @property
     def driver(self):
@@ -57,3 +65,27 @@ class StaticDriver(base.DriverBase):
         """
         return [(k, st["Id"]) for k in self._storage
                 for st in self._storage[k]]
+
+class ProxmoxDriver(base.ProxmoxDriverBase):
+    """Redfish storage for Proxmox"""
+
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+
+    @property
+    def driver(self):
+        """Return human-friendly driver information
+
+        :returns: driver information as `str`
+        """
+        return '<proxmox-storage>'
+
+
+
+    def get_storage_col(self, identity):
+        config = self._get_vm_config(identity)
+        disks = [{'name': key, 'value': value.split(",")} for key, value in config.items() if key.startswith("scsi") and key != "scsihw"]
+        drives = sorted([disk['name'] for disk in disks])
+        controller = config.get('scsihw', 'Unknown')
+        storage_col = [{'Id': controller, 'Name': controller, 'Drives': drives}]
+        return storage_col

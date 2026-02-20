@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from logging import config
 import uuid
 
 from sushy_tools.emulator import memoize
@@ -71,3 +72,40 @@ class StaticDriver(base.DriverBase):
         else:
             vol_col.remove(vol)
             self._volumes.update({(uu_identity, storage_id): vol_col})
+
+
+class ProxmoxDriver(base.ProxmoxDriverBase):
+    """Redfish Volumes emulated in libvirt backed by the config file
+
+    Maintains the libvirt volumes in memory.
+    """
+
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+
+    @property
+    def driver(self):
+        """Return human-friendly driver information
+
+        :returns: driver information as `str`
+        """
+        return '<proxmox-volumes>'
+
+    def get_volumes_col(self, identity, storage_id):
+        config = self._get_vm_config(identity)
+        volumes = []
+        for key, value in config.items():
+            if key == 'scsihw':
+                continue
+            if key.startswith("scsi"):
+                values = value.split(",")
+                drive_name = values[0]
+                values = values[1:]
+                properties = {value.split("=")[0]: value.split("=")[1] for value in values}
+                capacity = properties.get('size', '0')
+                if 'G' in capacity:
+                    capacity = int(capacity.replace('G', '')) * 1024 * 1024 * 1024
+
+                volumes.append({'Id': key, 'Name': drive_name, 'CapacityBytes': capacity, 'VolumeType': 'RawDevice'})
+
+        return volumes
