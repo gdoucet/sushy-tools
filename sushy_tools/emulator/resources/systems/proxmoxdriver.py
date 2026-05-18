@@ -28,7 +28,10 @@ try:
 except ImportError:
     ProxmoxAPI = None
     Files = None
-    ResourceException = None
+
+    class ResourceException(Exception):
+        status_code = 0
+        content = b""
 
 is_loaded = bool(ProxmoxAPI)
 
@@ -104,10 +107,19 @@ class ProxmoxDriver(AbstractSystemsDriver):
 
         return cls
 
+    def _iter_node_vms(self, node_name):
+        """Yield VMs on a node, skipping on transient Proxmox errors."""
+        try:
+            yield from self._proxmox.nodes(node_name).qemu.get()
+        except ResourceException as e:
+            self._logger.warning(
+                "Skipping node %s due to Proxmox API error: %s", node_name, e
+            )
+
     def _find_vm(self, identity):
         """Find a VM by name or vmid."""
         for node in self._proxmox.nodes.get():
-            for vm in self._proxmox.nodes(node["node"]).qemu.get():
+            for vm in self._iter_node_vms(node["node"]):
                 if str(vm["vmid"]) == identity:
                     return vm
         return None
@@ -115,14 +127,14 @@ class ProxmoxDriver(AbstractSystemsDriver):
     def _find_vm_resource(self, identity):
         """Find a VM by name or vmid."""
         for node in self._proxmox.nodes.get():
-            for vm in self._proxmox.nodes(node["node"]).qemu.get():
+            for vm in self._iter_node_vms(node["node"]):
                 if str(vm["vmid"]) == identity:
                     return self._proxmox.nodes(node["node"]).qemu(vm["vmid"])
 
     def _find_node_resource_by_vmid(self, identity):
         """Find a VM by name or vmid."""
         for node in self._proxmox.nodes.get():
-            for vm in self._proxmox.nodes(node["node"]).qemu.get():
+            for vm in self._iter_node_vms(node["node"]):
                 if str(vm["vmid"]) == identity:
                     return node
 
